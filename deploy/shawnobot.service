@@ -1,0 +1,19 @@
+[Unit]
+Description=ShawnoBot Feishu remote control gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=CHANGE_ME
+WorkingDirectory=/opt/ShawnoBot
+Environment=SHAWNOBOT_CONFIG=/opt/ShawnoBot/config.yaml
+EnvironmentFile=/opt/ShawnoBot/.env
+ExecStart=/opt/ShawnoBot/.venv/bin/python -m shawnobot --config /opt/ShawnoBot/config.yaml run
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
