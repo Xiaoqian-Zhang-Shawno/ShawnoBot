@@ -2,6 +2,8 @@
 
 ![ShawnoBot manga cover with a courier carrying a verified message to a workstation](assets/readme/hero.webp)
 
+![FEISHU GATEWAY, ALLOWLISTED TASKS, PYTHON 3.10+](assets/readme/product-strip.svg)
+
 [简体中文](README.zh-CN.md) · English
 
 **A secure Feishu gateway for your local Codex workstation.**
@@ -10,7 +12,7 @@ ShawnoBot translates Feishu messages into allowlisted commands or verified Codex
 tasks. It lets you check GPUs, training logs, project status, local jobs, and Codex
 sessions while away from your computer—without exposing an unrestricted shell.
 
-[Quick start](#quick-start-on-windows) · [How it works](#how-it-works) · [Commands](#commands) · [Security model](#security-model)
+[Quick start](#quick-start-on-windows) · [How it works](#how-it-works) · [Commands](#commands) · [Security model](#security-model) · [Troubleshooting](#troubleshooting)
 
 > ShawnoBot is an independent open-source project. It is not affiliated with or
 > endorsed by OpenAI, Feishu, ByteDance, or DeepSeek.
@@ -25,38 +27,6 @@ sessions while away from your computer—without exposing an unrestricted shell.
   structured commands or internal Codex prompts; its answer is never returned directly.
 - **Process notifications** — watch a PID and receive a Feishu message when it exits.
 - **Deny-by-default security** — user, group, project, task, log, and session allowlists.
-
-## How it works
-
-![Feishu messages pass authorization before branching to an allowlisted command or optional language routing. Host checks and sandboxed Codex results return through Feishu.](assets/readme/workflow-en.webp)
-
-[Editable source (draw.io)](assets/readme/workflow-en.drawio)
-
-<details>
-<summary>Expand the Mermaid diagram</summary>
-
-```mermaid
-flowchart LR
-    U["Feishu user"] --> F["Feishu bot"]
-    F --> A["Authorization and validation"]
-    A --> R{"Slash command or natural language?"}
-    R -->|Command| C["Allowlisted command router"]
-    R -->|Natural language| N["Optional NLU translator"]
-    N --> C
-    N --> X["Sandboxed Codex task"]
-    C --> S["Host / GPU / logs / jobs"]
-    C --> X
-    X --> P["Allowlisted local project"]
-    S --> F
-    X --> F
-```
-
-</details>
-
-DeepSeek, when enabled, is a translator—not the final assistant. ShawnoBot validates
-its structured output, then either runs an existing safe command or passes the
-translated task to Codex. Codex performs the actual project inspection or work and
-returns the result.
 
 ## Requirements
 
@@ -93,6 +63,51 @@ Validate and run:
 ```
 
 You can also run `.\scripts\run.ps1` after setup.
+
+
+## How it works
+
+[![Feishu messages pass authorization before branching to an allowlisted command or optional language routing. Host checks and sandboxed Codex results return through Feishu.](assets/readme/workflow-en.webp)](assets/readme/workflow-en.webp)
+
+[Editable source (draw.io)](assets/readme/workflow-en.drawio)
+
+<details>
+<summary>Expand the Mermaid diagram</summary>
+
+```mermaid
+flowchart LR
+    U["Feishu user"] --> F["Feishu bot"]
+    F --> A["Authorization and validation"]
+    A --> R{"Slash command or natural language?"}
+    R -->|Command| C["Allowlisted command router"]
+    R -->|Natural language| N["Optional NLU translator"]
+    N --> C
+    N --> X["Sandboxed Codex task"]
+    C --> S["Host / GPU / logs / jobs"]
+    C --> X
+    X --> P["Allowlisted local project"]
+    S --> F
+    X --> F
+```
+
+</details>
+
+DeepSeek, when enabled, is a translator—not the final assistant. ShawnoBot validates
+its structured output, then either runs an existing safe command or passes the
+translated task to Codex. Codex performs the actual project inspection or work and
+returns the result.
+
+## From workstation status to controlled execution
+
+| Goal | Start here | Access boundary |
+| --- | --- | --- |
+| Check the host and GPUs | `/host`, `/gpu` | The sender must be allowlisted. GPU reporting uses the host's `nvidia-smi`. |
+| Read a training log | `/log demo train 50` | Configure the project and log aliases. The path must stay inside the project root. |
+| Run a predefined task | `/task demo test` | The task uses the argument array and working directory declared in YAML. |
+| Resume a Codex session | List configured sessions with `/sessions` | Enable Codex for the project and explicitly allowlist the session ID. |
+
+> [!TIP]
+> On the first run, try `/help`, `/host`, and a configured log alias in a direct message. Once authorization and replies work, enable named tasks, Codex, and natural-language routing as needed.
 
 ## Feishu setup
 
@@ -177,6 +192,19 @@ ShawnoBot is a remote execution gateway and should be treated as security-sensit
 
 Run the bot under a dedicated non-administrator account when possible. Review
 [SECURITY.md](SECURITY.md) before enabling write access or remote registration.
+
+## Troubleshooting
+
+| Symptom | First check |
+| --- | --- |
+| A direct message is denied | Confirm that `feishu.allowed_user_ids` contains the sender's `open_id` and that the process loaded the intended YAML. |
+| Direct messages work but group messages get no reply | Allowlist the sender and group. Mention the bot if the configuration requires it. |
+| Host checks work but Codex fails | Enable Codex globally and for the project. Check that the bot's OS account can access the CLI and project directory. |
+| Slash commands work but ordinary messages fail | Check `codex.natural_language_enabled`. For model-based routing, also check `nlu.enabled` and provider settings. |
+| A log cannot be read | Check the aliases, resolved path, and OS account's read permissions. |
+
+> [!IMPORTANT]
+> With NLU enabled, ordinary messages and configured project, task, log, and session aliases can reach the model provider. Slash commands go directly through local routing. [Security model](SECURITY.md)
 
 ## Development
 

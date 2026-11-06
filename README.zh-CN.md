@@ -2,6 +2,8 @@
 
 ![ShawnoBot 漫画封面，信使在工作站入口接收经过验证的消息](assets/readme/hero.webp)
 
+![飞书网关、白名单任务、Python 3.10+](assets/readme/product-strip.svg)
+
 简体中文 · [English](README.md)
 
 **把飞书变成你本地 Codex 工作站的安全遥控台。**
@@ -10,7 +12,7 @@ ShawnoBot 将飞书消息转换为白名单指令或经过验证的 Codex 任务
 你仍可查看 GPU、训练日志、项目状态和本地任务，并继续 Codex 会话，同时避免
 暴露一个不受限制的远程 Shell。
 
-[快速开始](#windows-快速开始) · [工作原理](#工作原理) · [指令概览](#指令概览) · [安全模型](#安全模型)
+[快速开始](#windows-快速开始) · [工作原理](#工作原理) · [指令概览](#指令概览) · [安全模型](#安全模型) · [故障排查](#故障排查)
 
 > ShawnoBot 是独立开源项目，与 OpenAI、飞书、字节跳动及 DeepSeek 无隶属或
 > 官方背书关系。
@@ -25,37 +27,6 @@ ShawnoBot 将飞书消息转换为白名单指令或经过验证的 Codex 任务
   Codex 内部任务，其回复不会直接展示给飞书用户。
 - **进程完成提醒**：跟踪 PID，进程结束后由机器人主动通知。
 - **默认拒绝**：用户、群聊、项目、任务、日志和会话均采用白名单。
-
-## 工作原理
-
-![飞书消息先鉴权，再进入白名单指令或可选的自然语言路由。主机检查与沙箱内 Codex 的结果经飞书回传。](assets/readme/workflow-zh.webp)
-
-[可编辑源图（draw.io）](assets/readme/workflow-zh.drawio)
-
-<details>
-<summary>展开 Mermaid 流程图</summary>
-
-```mermaid
-flowchart LR
-    U["飞书用户"] --> F["飞书机器人"]
-    F --> A["鉴权与参数校验"]
-    A --> R{"斜杠指令还是自然语言？"}
-    R -->|指令| C["白名单指令路由"]
-    R -->|自然语言| N["可选 NLU 翻译器"]
-    N --> C
-    N --> X["沙箱中的 Codex 任务"]
-    C --> S["主机 / GPU / 日志 / 任务"]
-    C --> X
-    X --> P["白名单本地项目"]
-    S --> F
-    X --> F
-```
-
-</details>
-
-启用 DeepSeek 后，它只充当“翻译官”，不是最终回答者。ShawnoBot 会校验模型
-输出，再选择已有安全指令，或把翻译后的任务交给 Codex。真正的项目检查、代码
-操作和结果整理仍由 Codex 完成。
 
 ## 环境要求
 
@@ -92,6 +63,50 @@ Issue 或日志。
 ```
 
 完成初始化后，也可以直接运行 `.\scripts\run.ps1`。
+
+
+## 工作原理
+
+[![飞书消息先鉴权，再进入白名单指令或可选的自然语言路由。主机检查与沙箱内 Codex 的结果经飞书回传。](assets/readme/workflow-zh.webp)](assets/readme/workflow-zh.webp)
+
+[可编辑源图（draw.io）](assets/readme/workflow-zh.drawio)
+
+<details>
+<summary>展开 Mermaid 流程图</summary>
+
+```mermaid
+flowchart LR
+    U["飞书用户"] --> F["飞书机器人"]
+    F --> A["鉴权与参数校验"]
+    A --> R{"斜杠指令还是自然语言？"}
+    R -->|指令| C["白名单指令路由"]
+    R -->|自然语言| N["可选 NLU 翻译器"]
+    N --> C
+    N --> X["沙箱中的 Codex 任务"]
+    C --> S["主机 / GPU / 日志 / 任务"]
+    C --> X
+    X --> P["白名单本地项目"]
+    S --> F
+    X --> F
+```
+
+</details>
+
+启用 DeepSeek 后，它只充当“翻译官”，不是最终回答者。ShawnoBot 会校验模型
+输出，再选择已有安全指令，或把翻译后的任务交给 Codex。真正的项目检查、代码
+操作和结果整理仍由 Codex 完成。
+
+## 从查看状态到受控执行
+
+| 我想做什么 | 从这里开始 | 权限边界 |
+| --- | --- | --- |
+| 看主机和 GPU | `/host`、`/gpu` | 发送者须在飞书白名单。GPU 数据依赖主机的 `nvidia-smi`。 |
+| 看训练日志 | `/log demo train 50` | 项目和日志别名须预先配置，路径须在项目根目录内。 |
+| 运行固定任务 | `/task demo test` | 使用配置中的参数数组和工作目录。 |
+| 接续 Codex 会话 | `/sessions` 查看已配置会话 | 项目需启用 Codex，会话 ID 需明确授权。 |
+
+> [!TIP]
+> 首次部署先在私聊试 `/help`、`/host` 和一个已配置的日志别名。验证授权和响应后，再按需启用命名任务、Codex 与自然语言解析。
 
 ## 飞书配置
 
@@ -171,6 +186,19 @@ ShawnoBot 是远程执行网关，应按安全敏感服务管理：
 
 条件允许时，请使用专用的非管理员 Windows 账户运行。开启写权限或远程项目
 登记前，请先阅读 [SECURITY.md](SECURITY.md)。
+
+## 故障排查
+
+| 现象 | 优先检查 |
+| --- | --- |
+| 私聊被拒绝 | `feishu.allowed_user_ids` 是否包含发送者的 `open_id`，以及进程是否加载了预期 YAML。 |
+| 私聊可用，群聊没响应 | 同时核对用户与群 ID。要求提及时，消息还需 @ 机器人。 |
+| 能查主机，无法运行 Codex | 确认全局和项目均启用 Codex，运行账号能访问 CLI 与项目目录。 |
+| 斜杠指令可用，普通消息不可用 | 检查 `codex.natural_language_enabled`。若需模型解析，再检查 `nlu.enabled` 和供应商配置。 |
+| 日志读不到 | 核对项目别名、日志别名、解析后的路径和读取权限。 |
+
+> [!IMPORTANT]
+> 启用 NLU 后，普通消息与已配置的项目、任务、日志和会话别名可以发送给模型供应商。斜杠指令直接走本地路由。[安全模型](SECURITY.md)
 
 ## 开发与测试
 
