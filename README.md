@@ -1,5 +1,7 @@
 # ShawnoBot
 
+![ShawnoBot manga cover with a courier carrying a verified message to a workstation](assets/readme/hero.webp)
+
 [简体中文](README.zh-CN.md) · English
 
 **A secure Feishu gateway for your local Codex workstation.**
@@ -7,6 +9,8 @@
 ShawnoBot translates Feishu messages into allowlisted commands or verified Codex
 tasks. It lets you check GPUs, training logs, project status, local jobs, and Codex
 sessions while away from your computer—without exposing an unrestricted shell.
+
+[Quick start](#quick-start-on-windows) · [How it works](#how-it-works) · [Commands](#commands) · [Security model](#security-model)
 
 > ShawnoBot is an independent open-source project. It is not affiliated with or
 > endorsed by OpenAI, Feishu, ByteDance, or DeepSeek.
@@ -24,6 +28,13 @@ sessions while away from your computer—without exposing an unrestricted shell.
 
 ## How it works
 
+![Feishu messages pass authorization before branching to an allowlisted command or optional language routing. Host checks and sandboxed Codex results return through Feishu.](assets/readme/workflow-en.webp)
+
+[Editable source (draw.io)](assets/readme/workflow-en.drawio)
+
+<details>
+<summary>Expand the Mermaid diagram</summary>
+
 ```mermaid
 flowchart LR
     U["Feishu user"] --> F["Feishu bot"]
@@ -39,6 +50,8 @@ flowchart LR
     S --> F
     X --> F
 ```
+
+</details>
 
 DeepSeek, when enabled, is a translator—not the final assistant. ShawnoBot validates
 its structured output, then either runs an existing safe command or passes the

@@ -1,5 +1,7 @@
 # ShawnoBot
 
+![ShawnoBot 漫画封面，信使在工作站入口接收经过验证的消息](assets/readme/hero.webp)
+
 简体中文 · [English](README.md)
 
 **把飞书变成你本地 Codex 工作站的安全遥控台。**
@@ -7,6 +9,8 @@
 ShawnoBot 将飞书消息转换为白名单指令或经过验证的 Codex 任务。离开电脑后，
 你仍可查看 GPU、训练日志、项目状态和本地任务，并继续 Codex 会话，同时避免
 暴露一个不受限制的远程 Shell。
+
+[快速开始](#windows-快速开始) · [工作原理](#工作原理) · [指令概览](#指令概览) · [安全模型](#安全模型)
 
 > ShawnoBot 是独立开源项目，与 OpenAI、飞书、字节跳动及 DeepSeek 无隶属或
 > 官方背书关系。
@@ -24,6 +28,13 @@ ShawnoBot 将飞书消息转换为白名单指令或经过验证的 Codex 任务
 
 ## 工作原理
 
+![飞书消息先鉴权，再进入白名单指令或可选的自然语言路由。主机检查与沙箱内 Codex 的结果经飞书回传。](assets/readme/workflow-zh.webp)
+
+[可编辑源图（draw.io）](assets/readme/workflow-zh.drawio)
+
+<details>
+<summary>展开 Mermaid 流程图</summary>
+
 ```mermaid
 flowchart LR
     U["飞书用户"] --> F["飞书机器人"]
@@ -39,6 +50,8 @@ flowchart LR
     S --> F
     X --> F
 ```
+
+</details>
 
 启用 DeepSeek 后，它只充当“翻译官”，不是最终回答者。ShawnoBot 会校验模型
 输出，再选择已有安全指令，或把翻译后的任务交给 Codex。真正的项目检查、代码
